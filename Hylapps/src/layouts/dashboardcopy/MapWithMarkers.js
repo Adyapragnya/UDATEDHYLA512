@@ -71,7 +71,7 @@ const MapWithMarkers = ({ vessels, selectedVessel }) => {
         const updateMarkers = () => {
           const currentZoom = map.getZoom();
           const { width, height, type } = getIconForZoom(currentZoom);
-  
+    
           if (markerClusterGroupRef.current) {
             markerClusterGroupRef.current.clearLayers();
           } else {
@@ -80,7 +80,7 @@ const MapWithMarkers = ({ vessels, selectedVessel }) => {
             });
             map.addLayer(markerClusterGroupRef.current);
           }
-  
+    
           vessels.forEach((vessel) => {
             if (vessel.lat !== undefined && vessel.lng !== undefined) {
               const marker = L.marker([vessel.lat, vessel.lng], {
@@ -89,10 +89,10 @@ const MapWithMarkers = ({ vessels, selectedVessel }) => {
                     ? createPointIcon(width, height)
                     : createCustomIcon(vessel.heading, width, height, type),
               });
-  
+    
               // Bind popup to marker
-              marker.bindPopup(`
-                <div class="popup-container">
+              marker.bindPopup(
+                `<div class="popup-container">
                   <div class="popup-header">
                     <h3 class="popup-title">${vessel.name || 'No name'} <span class="popup-imo">${vessel.imo ? vessel.imo : 'N/A'}</span></h3>
                   </div>
@@ -105,43 +105,44 @@ const MapWithMarkers = ({ vessels, selectedVessel }) => {
                   <div class="popup-footer">
                     <a href="/dashboard/${vessel.name}" class="view-more-link">++View More</a>
                   </div>
-                </div>
-              `);
-  
+                </div>`
+              );
+    
               // Add click event for flyTo functionality
-            //   marker.on('click', (event) => {
-            //     event.originalEvent.stopPropagation(); // Prevent interference with popup opening
-            //     map.flyTo([vessel.lat, vessel.lng], 6, {
-            //       animate: true,
-            //       duration: 1,
-            //     });
-            //   });
-  
+              marker.on('click', () => {
+                
+    
+                // Ensure the popup stays open
+                marker.openPopup();
+              });
+
+              
+    
               markerClusterGroupRef.current.addLayer(marker);
             } else {
               console.error(`Invalid coordinates for vessel: ${JSON.stringify(vessel)}`);
             }
           });
         };
-  
+    
         const flyToVessel = () => {
           if (selectedVessel && selectedVessel !== prevSelectedVesselRef.current) {
             const { width, height, type } = getIconForZoom(map.getZoom());
-  
+    
             const customIcon = createCustomIcon(
               selectedVessel.heading,
               width,
               height,
               type
             );
-  
+    
             const tempMarker = L.marker(
               [selectedVessel.lat, selectedVessel.lng],
               { icon: customIcon }
             )
               .addTo(map)
-              .bindPopup(`
-                <div class="popup-container">
+              .bindPopup(
+                `<div class="popup-container">
                   <div class="popup-header">
                     <h3 class="popup-title">${selectedVessel.name || 'No name'} <span class="popup-imo">${selectedVessel.imo ? selectedVessel.imo : 'N/A'}</span></h3>
                   </div>
@@ -154,31 +155,32 @@ const MapWithMarkers = ({ vessels, selectedVessel }) => {
                   <div class="popup-footer">
                     <a href="/dashboard/${selectedVessel.name}" class="view-more-link">++View More</a>
                   </div>
-                </div>
-              `)
+                </div>`
+              )
               .openPopup();
-  
+    
             map.flyTo([selectedVessel.lat, selectedVessel.lng], 8, {
               animate: true,
               duration: 1,
             });
-  
-            // Cleanup after flyTo
-            setTimeout(() => {
-              tempMarker.remove();
-            }, 1000000000);
-  
+            
+    
+            // Ensure the popup stays open
+            tempMarker.on('popupclose', () => {
+              tempMarker.openPopup();
+            });
+    
             prevSelectedVesselRef.current = selectedVessel;
           }
         };
-  
+    
         updateMarkers();
         flyToVessel();
       }
     }, [map, vessels, selectedVessel]);
-  
+    
     return null;
-  };
+    }  
 
 MapWithMarkers.propTypes = {
   vessels: PropTypes.arrayOf(
